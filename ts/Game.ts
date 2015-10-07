@@ -12,7 +12,7 @@ class GAME {
 
     private canvas : HTMLCanvasElement;
     private scene : BABYLON.Scene;
-    private light : BABYLON.PointLight;
+    private light : BABYLON.DirectionalLight;
     private camera : BABYLON.FreeCamera;
     private player : BABYLON.Mesh;
     private level : number;
@@ -59,9 +59,9 @@ class GAME {
         // Debug layer
         this.scene.debugLayer.show();
 
-        this.light = new BABYLON.PointLight(
+        this.light = new BABYLON.DirectionalLight(
             "light",
-            BABYLON.Vector3.Zero(),
+            new BABYLON.Vector3(0,0,1),
             this.scene
         );
 
@@ -77,6 +77,7 @@ class GAME {
         this.camera.keysRight = [68]; // D
         this.camera.attachControl(this.canvas);
         this.light.parent = this.camera;
+        this.light.position.x -= 2;
         this.camera.speed = 0.8;
         this.camera.angularSensibility = 2000;
         this.camera.ellipsoid = new BABYLON.Vector3(1.5,1.5,1.5);
@@ -148,11 +149,14 @@ class GAME {
             window.addEventListener("keydown", (evt) => {
                 // Press space key to reverse
                 if (evt.keyCode === 32) {
+                    console.log("Jump");
                     if (this.gravity) {
                         this.scene.setGravity(new BABYLON.Vector3(0, 9.81, 0));
+                        this.gravity = false;
                     }
                     else {
                         this.scene.setGravity(new BABYLON.Vector3(0, -9.81, 0));
+                        this.gravity = true;
                     }
                 }
             });
@@ -195,10 +199,9 @@ class GAME {
     }
 
     lookAtDirection(direction) {
+        console.log("Look at " + direction);
+
         switch (direction) {
-            case 0:
-                this.camera.rotation.y += Math.PI;
-                break;
             case 1:
                 this.camera.rotation.y -= Math.PI/2;
                 break;
@@ -206,6 +209,9 @@ class GAME {
                 break;
             case 3:
                 this.camera.rotation.y += Math.PI/2;
+                break;
+            case 4:
+                this.camera.rotation.y += Math.PI;
                 break;
             default:
                 break;

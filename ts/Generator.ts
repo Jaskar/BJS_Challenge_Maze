@@ -11,11 +11,13 @@ class Generator {
     private length : number;
     private path : BABYLON.Vector3[];
     public static BLOCK_SIZE = 4;
+    public setDirection : boolean;
 
 
     //******************************** CONSTRUCTOR
 
     constructor() {
+        this.setDirection = true;
         this.maze = [];
         this.path = [];
     }
@@ -178,7 +180,15 @@ class Generator {
      */
     private getRandomDir(position : BABYLON.Vector3) : number {
 
-        var possibleDirs = [1,2,3,4,5,6];
+        var possibleDirs;
+
+        if(this.path.length == 1 && this.setDirection) {
+            possibleDirs = [1,2,3,4];
+        }
+        else {
+            possibleDirs = [1,2,3,4,5,6];
+        }
+
         var returnDir = 0;
 
         do {
@@ -234,6 +244,11 @@ class Generator {
             }
 
         } while(returnDir == 0 && possibleDirs.length > 0);
+
+        if(this.path.length == 1 && this.setDirection) {
+            this.setDirection = false;
+            GAME.instance.lookAtDirection(returnDir);
+        }
 
         return returnDir;
     }
