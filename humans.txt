@@ -1,0 +1,9 @@
+/* TEAM */
+    Developer: Anthony Gee
+    Contact: a.gee [at] live.fr
+    Twitter: @Anthony_Jaskar
+    From: Rouen, France
+
+/* SITE */
+    Technologies: HTML5, CSS3, SCSS, JavaScript, TypeScript
+    Libraries & Frameworks: BABYLONJS (3D rendering and manipulation)
