@@ -5,6 +5,6 @@ document.addEventListener("DOMContentLoaded", function () {
     var myGame;
 
     if (BABYLON.Engine.isSupported()) {
-        myGame = new GAME(1);
+        myGame = new GAME(2);
     }
 }, false);

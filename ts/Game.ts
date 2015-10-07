@@ -14,6 +14,7 @@ class GAME {
     private scene : BABYLON.Scene;
     private light : BABYLON.PointLight;
     private camera : BABYLON.FreeCamera;
+    private player : BABYLON.Mesh;
     private level : number;
     private assets : BABYLON.Mesh[];
 
@@ -53,12 +54,10 @@ class GAME {
         this.scene.clearColor = BABYLON.Color3.Black();
         this.scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
         this.scene.fogColor = this.scene.clearColor;
-        //this.scene.fogStart = 1.0;
-        //this.scene.fogEnd = 5.0;
         this.scene.setGravity(new BABYLON.Vector3(0,-9.81,0));
 
         // Debug layer
-        //this.scene.debugLayer.show();
+        this.scene.debugLayer.show();
 
         this.light = new BABYLON.PointLight(
             "light",
@@ -71,31 +70,38 @@ class GAME {
             BABYLON.Vector3.Zero(),
             this.scene
         );
-        this.camera.position.y = 25;
+        this.camera.position.y = 1.5;
         this.camera.keysUp = [90]; // Z
         this.camera.keysLeft = [81]; // Q
         this.camera.keysDown = [83]; // S
         this.camera.keysRight = [68]; // D
         this.camera.attachControl(this.canvas);
         this.light.parent = this.camera;
-        this.camera.speed = 0.5;
-        this.camera.angularSensibility = 2500;
+        this.camera.speed = 0.8;
+        this.camera.angularSensibility = 2000;
         this.camera.ellipsoid = new BABYLON.Vector3(1.5,1.5,1.5);
         this.camera.checkCollisions = true;
-        this.camera.rotation.x += Math.PI/2;
-        //this.camera.applyGravity = true;
+        this.camera.applyGravity = true;
+        this.player = BABYLON.Mesh.CreateBox(
+            "player",
+            1,
+            this.scene
+        );
+        this.player.parent = this.camera;
+        this.player.isVisible = false;
+        this.player.position.z = 2;
+        this.player.ellipsoid = new BABYLON.Vector3(1,1,1);
+        this.player.computeWorldMatrix(true);
 
         var mazeGenerator = new Generator();
         var exitPoint : BABYLON.Vector3;
 
         if(this.level == 1) {
-            exitPoint = mazeGenerator.generate(42,42,1);
+            exitPoint = mazeGenerator.generate(10,10,1);
         }
         else if(this.level == 2) {
             exitPoint = mazeGenerator.generate(42,42,2);
         }
-
-        console.log(exitPoint);
 
         var exitMat = new BABYLON.StandardMaterial("exitMat", this.scene);
         exitMat.diffuseColor = BABYLON.Color3.Red();
@@ -106,9 +112,27 @@ class GAME {
         );
         exit.material = exitMat;
         exit.position.x = (exitPoint.x * Generator.BLOCK_SIZE);
-        //exit.position.y = (exitPoint.y * Generator.BLOCK_SIZE);
-        exit.position.y = 8;
-        exit.position.z = (exitPoint.z * Generator.BLOCK_SIZE);
+        //exit.position.y = (exitPoint.z * Generator.BLOCK_SIZE);
+        exit.position.y = 1;
+        exit.position.z = (exitPoint.y * Generator.BLOCK_SIZE);
+        exit.ellipsoid = new BABYLON.Vector3(1,1,1);
+        exit.computeWorldMatrix();
+
+        this.scene.registerBeforeRender(() => {
+
+            // If collide with exit
+            if(this.level == 1) {
+                if(this.player.intersectsMesh(exit, true)) {
+                    alert("You win! Ready for level 2 ?");
+                    window.location.href = "./level_2.html";
+                }
+            }
+
+            // Rotate exit
+            exit.rotation.x += 0.01;
+            exit.rotation.y += 0.02;
+            exit.rotation.z += 0.03;
+        });
 
         //this.loadAssets(() => {});
 
@@ -120,17 +144,19 @@ class GAME {
             engine.resize();
         });
 
-        window.addEventListener("keydown", (evt) => {
-            // Press space key to fire
-            if (evt.keyCode === 32) {
-                if(this.gravity) {
-                    this.scene.setGravity(new BABYLON.Vector3(0,9.81,0));
+        if(this.level == 2) {
+            window.addEventListener("keydown", (evt) => {
+                // Press space key to reverse
+                if (evt.keyCode === 32) {
+                    if (this.gravity) {
+                        this.scene.setGravity(new BABYLON.Vector3(0, 9.81, 0));
+                    }
+                    else {
+                        this.scene.setGravity(new BABYLON.Vector3(0, -9.81, 0));
+                    }
                 }
-                else {
-                    this.scene.setGravity(new BABYLON.Vector3(0,-9.81,0));
-                }
-            }
-        });
+            });
+        }
     }
 
     update() {

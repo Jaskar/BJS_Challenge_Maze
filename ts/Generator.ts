@@ -91,7 +91,8 @@ class Generator {
         }
 
         var wallMat = new BABYLON.StandardMaterial("alphaMat", GAME.instance.getScene());
-        wallMat.specularColor = BABYLON.Color3.Black();
+        wallMat.diffuseColor = BABYLON.Color3.Gray();
+        wallMat.specularColor = BABYLON.Color3.Gray();
 
         mergedWall = <BABYLON.Mesh>BABYLON.Mesh.MergeMeshes(wallList, true, true);
         mergedWall.checkCollisions = true;
