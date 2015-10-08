@@ -12,13 +12,15 @@ class GAME {
 
     private canvas : HTMLCanvasElement;
     private scene : BABYLON.Scene;
-    private light : BABYLON.DirectionalLight;
+    private light : BABYLON.SpotLight;
     private camera : BABYLON.FreeCamera;
+    private cameraAnimation : BABYLON.Mesh;
     private player : BABYLON.Mesh;
     private level : number;
     private assets : BABYLON.Mesh[];
 
     private gravity : boolean = true;
+    private isMoving : boolean = false;
 
 
     //******************************** GET / SET
@@ -54,14 +56,15 @@ class GAME {
         this.scene.clearColor = BABYLON.Color3.Black();
         this.scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
         this.scene.fogColor = this.scene.clearColor;
-        this.scene.setGravity(new BABYLON.Vector3(0,-9.81,0));
 
         // Debug layer
         this.scene.debugLayer.show();
 
-        this.light = new BABYLON.DirectionalLight(
+        this.light = new BABYLON.SpotLight(
             "light",
+            BABYLON.Vector3.Zero(),
             new BABYLON.Vector3(0,0,1),
+            5,0.3,
             this.scene
         );
 
@@ -77,12 +80,10 @@ class GAME {
         this.camera.keysRight = [68]; // D
         this.camera.attachControl(this.canvas);
         this.light.parent = this.camera;
-        this.light.position.x -= 2;
-        this.camera.speed = 0.8;
-        this.camera.angularSensibility = 2000;
-        this.camera.ellipsoid = new BABYLON.Vector3(1.5,1.5,1.5);
+        this.camera.speed = 0.7;
+        this.camera.angularSensibility = 2500;
+        this.camera.ellipsoid = new BABYLON.Vector3(1.2,1.2,1.2);
         this.camera.checkCollisions = true;
-        this.camera.applyGravity = true;
         this.player = BABYLON.Mesh.CreateBox(
             "player",
             1,
@@ -93,6 +94,29 @@ class GAME {
         this.player.position.z = 2;
         this.player.ellipsoid = new BABYLON.Vector3(1,1,1);
         this.player.computeWorldMatrix(true);
+
+        this.cameraAnimation = BABYLON.Mesh.CreateBox(
+            "cameraAnimation",
+            1,
+            this.scene
+        );
+        this.cameraAnimation.position.y = 1.5;
+        this.cameraAnimation.isVisible = false;
+        this.cameraAnimation.checkCollisions = false;
+
+
+        // Skybox
+        var skybox = BABYLON.Mesh.CreateBox("skyBox", 1000.0, this.scene);
+        skybox.isPickable = false;
+        // Skybox material
+        var skyboxMaterial = new BABYLON.StandardMaterial("skyBox", this.scene);
+        skyboxMaterial.backFaceCulling = false;
+        skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("assets/skybox/sky", this.scene);
+        skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+        skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+        skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+        skybox.material = skyboxMaterial;
+
 
         var mazeGenerator = new Generator();
         var exitPoint : BABYLON.Vector3;
@@ -148,15 +172,86 @@ class GAME {
         if(this.level == 2) {
             window.addEventListener("keydown", (evt) => {
                 // Press space key to reverse
-                if (evt.keyCode === 32) {
-                    console.log("Jump");
+                if (evt.keyCode === 32 && !this.isMoving) {
+                    this.isMoving = true;
                     if (this.gravity) {
-                        this.scene.setGravity(new BABYLON.Vector3(0, 9.81, 0));
-                        this.gravity = false;
+                        this.camera.detachControl(this.canvas);
+                        this.camera.animations = null;
+                        //var animationRotation = BABYLON.Animation.CreateAndStartAnimation(
+                        //    "cameraRotation",
+                        //    this.cameraAnimation,
+                        //    "rotation",
+                        //    30,
+                        //    45,
+                        //    this.cameraAnimation.rotation,
+                        //    new BABYLON.Vector3(this.cameraAnimation.rotation.x + Math.PI/8, this.camera.rotation.y + Math.PI/8, Math.PI/8),
+                        //    BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+                        //);
+                        var animationRotation = new BABYLON.Animation("animCam", "rotation", 30,
+                            BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
+                            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
+
+                        var keysRotation = [];
+                        keysRotation.push({
+                            frame: 0,
+                            value: new BABYLON.Vector3(this.camera.rotation.x, this.camera.rotation.y, this.camera.rotation.z)
+                        });
+                        keysRotation.push({
+                            frame: 60,
+                            value: new BABYLON.Vector3(this.camera.rotation.x + Math.PI, this.camera.rotation.y, this.camera.rotation.z)
+                        });
+
+                        animationRotation.setKeys(keysRotation);
+                        this.camera.animations = [];
+                        this.camera.animations.push(animationRotation);
+                        this.camera.animations.push(animationRotation);
+
+                        this.scene.beginAnimation(this.camera, 0, 60, false);
+
+                        var animationPosition = BABYLON.Animation.CreateAndStartAnimation(
+                            "cameraPositionToTop",
+                            this.cameraAnimation,
+                            "position",
+                            30,
+                            60,
+                            this.cameraAnimation.position,
+                            new BABYLON.Vector3(this.cameraAnimation.position.x, 8, this.camera.position.z),
+                            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+                        );
+                        animationPosition.onAnimationEnd = () => {
+                            this.camera.attachControl(this.canvas);
+                            this.gravity = false;
+                            this.isMoving = false;
+                        };
                     }
                     else {
-                        this.scene.setGravity(new BABYLON.Vector3(0, -9.81, 0));
-                        this.gravity = true;
+                        this.camera.detachControl(this.canvas);
+                        this.camera.animations = null
+                        //var animationRotation = BABYLON.Animation.CreateAndStartAnimation(
+                        //    "cameraRotation",
+                        //    this.cameraAnimation,
+                        //    "rotation",
+                        //    30,
+                        //    45,
+                        //    this.cameraAnimation.rotation,
+                        //    new BABYLON.Vector3(this.cameraAnimation.rotation.x + Math.PI, this.camera.rotation.y + Math.PI, this.camera.rotation.z),
+                        //    BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+                        //);
+                        var animationPosition = BABYLON.Animation.CreateAndStartAnimation(
+                            "cameraPositionToTop",
+                            this.cameraAnimation,
+                            "position",
+                            30,
+                            60,
+                            this.cameraAnimation.position,
+                            new BABYLON.Vector3(this.cameraAnimation.position.x, 1.5, this.camera.position.z),
+                            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+                        );
+                        animationPosition.onAnimationEnd = () => {
+                            this.camera.attachControl(this.canvas);
+                            this.gravity = true;
+                            this.isMoving = false;
+                        };
                     }
                 }
             });
@@ -164,6 +259,8 @@ class GAME {
     }
 
     update() {
+        this.camera.position.y = this.cameraAnimation.position.y;
+
         this.scene.render();
     }
 
@@ -199,7 +296,6 @@ class GAME {
     }
 
     lookAtDirection(direction) {
-        console.log("Look at " + direction);
 
         switch (direction) {
             case 1:
