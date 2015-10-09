@@ -21,6 +21,7 @@ class GAME {
 
     private gravity : boolean = true;
     private isMoving : boolean = false;
+    private mazeGenerator : Generator;
 
 
     //******************************** GET / SET
@@ -73,13 +74,13 @@ class GAME {
             BABYLON.Vector3.Zero(),
             this.scene
         );
+        this.light.parent = this.camera;
         this.camera.position.y = 1.5;
         this.camera.keysUp = [90]; // Z
         this.camera.keysLeft = [81]; // Q
         this.camera.keysDown = [83]; // S
         this.camera.keysRight = [68]; // D
         this.camera.attachControl(this.canvas);
-        this.light.parent = this.camera;
         this.camera.speed = 0.7;
         this.camera.angularSensibility = 2500;
         this.camera.ellipsoid = new BABYLON.Vector3(1.2,1.2,1.2);
@@ -118,14 +119,14 @@ class GAME {
         skybox.material = skyboxMaterial;
 
 
-        var mazeGenerator = new Generator();
+        this.mazeGenerator = new Generator();
         var exitPoint : BABYLON.Vector3;
 
         if(this.level == 1) {
-            exitPoint = mazeGenerator.generate(10,10,1);
+            exitPoint = this.mazeGenerator.generate(10,10,1);
         }
         else if(this.level == 2) {
-            exitPoint = mazeGenerator.generate(42,42,2);
+            exitPoint = this.mazeGenerator.generate(42,42,2);
         }
 
         var exitMat = new BABYLON.StandardMaterial("exitMat", this.scene);
@@ -169,93 +170,59 @@ class GAME {
             engine.resize();
         });
 
-        if(this.level == 2) {
-            window.addEventListener("keydown", (evt) => {
-                // Press space key to reverse
-                if (evt.keyCode === 32 && !this.isMoving) {
+        window.addEventListener("keydown", (evt) => {
+            if (evt.keyCode === 32 && !this.isMoving) {
+                if(this.level == 2) {
+
                     this.isMoving = true;
+
+                    this.camera.detachControl(this.canvas);
+                    this.camera.animations = null;
+
+                    var goalPosition = new BABYLON.Vector3(
+                        this.cameraAnimation.position.x,
+                        this.cameraAnimation.position.y,
+                        this.cameraAnimation.position.z
+                    );
+
                     if (this.gravity) {
-                        this.camera.detachControl(this.canvas);
-                        this.camera.animations = null;
-                        //var animationRotation = BABYLON.Animation.CreateAndStartAnimation(
-                        //    "cameraRotation",
-                        //    this.cameraAnimation,
-                        //    "rotation",
-                        //    30,
-                        //    45,
-                        //    this.cameraAnimation.rotation,
-                        //    new BABYLON.Vector3(this.cameraAnimation.rotation.x + Math.PI/8, this.camera.rotation.y + Math.PI/8, Math.PI/8),
-                        //    BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-                        //);
-                        var animationRotation = new BABYLON.Animation("animCam", "rotation", 30,
-                            BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
-                            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
-
-                        var keysRotation = [];
-                        keysRotation.push({
-                            frame: 0,
-                            value: new BABYLON.Vector3(this.camera.rotation.x, this.camera.rotation.y, this.camera.rotation.z)
-                        });
-                        keysRotation.push({
-                            frame: 60,
-                            value: new BABYLON.Vector3(this.camera.rotation.x + Math.PI, this.camera.rotation.y, this.camera.rotation.z)
-                        });
-
-                        animationRotation.setKeys(keysRotation);
-                        this.camera.animations = [];
-                        this.camera.animations.push(animationRotation);
-                        this.camera.animations.push(animationRotation);
-
-                        this.scene.beginAnimation(this.camera, 0, 60, false);
-
-                        var animationPosition = BABYLON.Animation.CreateAndStartAnimation(
-                            "cameraPositionToTop",
-                            this.cameraAnimation,
-                            "position",
-                            30,
-                            60,
-                            this.cameraAnimation.position,
-                            new BABYLON.Vector3(this.cameraAnimation.position.x, 8, this.camera.position.z),
-                            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+                        this.gravity = false;
+                        this.mazeGenerator.invert(
+                            1,
+                            () => {
+                                this.camera.attachControl(this.canvas);
+                                this.isMoving = false;
+                            }
                         );
-                        animationPosition.onAnimationEnd = () => {
-                            this.camera.attachControl(this.canvas);
-                            this.gravity = false;
-                            this.isMoving = false;
-                        };
                     }
                     else {
-                        this.camera.detachControl(this.canvas);
-                        this.camera.animations = null
-                        //var animationRotation = BABYLON.Animation.CreateAndStartAnimation(
-                        //    "cameraRotation",
-                        //    this.cameraAnimation,
-                        //    "rotation",
-                        //    30,
-                        //    45,
-                        //    this.cameraAnimation.rotation,
-                        //    new BABYLON.Vector3(this.cameraAnimation.rotation.x + Math.PI, this.camera.rotation.y + Math.PI, this.camera.rotation.z),
-                        //    BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-                        //);
-                        var animationPosition = BABYLON.Animation.CreateAndStartAnimation(
-                            "cameraPositionToTop",
-                            this.cameraAnimation,
-                            "position",
-                            30,
-                            60,
-                            this.cameraAnimation.position,
-                            new BABYLON.Vector3(this.cameraAnimation.position.x, 1.5, this.camera.position.z),
-                            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+                        this.gravity = true;
+                        this.mazeGenerator.invert(
+                            -1,
+                            () => {
+                                this.camera.attachControl(this.canvas);
+                                this.isMoving = false;
+                            }
                         );
-                        animationPosition.onAnimationEnd = () => {
-                            this.camera.attachControl(this.canvas);
-                            this.gravity = true;
-                            this.isMoving = false;
-                        };
                     }
+
+                    //var animationPosition = BABYLON.Animation.CreateAndStartAnimation(
+                    //    "cameraPositionToTop",
+                    //    this.cameraAnimation,
+                    //    "position",
+                    //    30,
+                    //    60,
+                    //    this.cameraAnimation.position,
+                    //    goalPosition,
+                    //    BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+                    //);
+                    //animationPosition.onAnimationEnd = () => {
+                    //    this.camera.attachControl(this.canvas);
+                    //    this.isMoving = false;
+                    //};
                 }
-            });
-        }
+            }
+        });
     }
 
     update() {

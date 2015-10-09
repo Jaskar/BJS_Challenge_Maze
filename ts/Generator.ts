@@ -12,11 +12,13 @@ class Generator {
     private path : BABYLON.Vector3[];
     public static BLOCK_SIZE = 4;
     public setDirection : boolean;
+    public mazes : BABYLON.Mesh[];
 
 
     //******************************** CONSTRUCTOR
 
     constructor() {
+        this.mazes = [];
         this.setDirection = true;
         this.maze = [];
         this.path = [];
@@ -66,7 +68,9 @@ class Generator {
         } while(this.path.length > 0);
 
         var wallList = [];
-        var mergedWall;
+        wallList[0] = [];
+        wallList[1] = [];
+
         var templateWall = BABYLON.Mesh.CreateBox(
             "wall", 4,
             GAME.instance.getScene()
@@ -77,16 +81,19 @@ class Generator {
             for(var y = -(this.height/2); y < (this.height/2)+1; y++) {
                 for(var z = 0; z < this.length; z++) {
                     if (this.maze[x][y][z] == 1) {
-                        wallList.push(<BABYLON.Mesh>templateWall.clone("wall"));
-                        wallList[wallList.length - 1].isVisible = true;
-                        wallList[wallList.length - 1].position.x = x * Generator.BLOCK_SIZE;
+                        var newBlock = <BABYLON.Mesh>templateWall.clone("wall");
+
+                        newBlock.isVisible = true;
+                        newBlock.position.x = x * Generator.BLOCK_SIZE;
+                        newBlock.position.z = y * Generator.BLOCK_SIZE;
                         if(length == 1) {
-                            wallList[wallList.length - 1].position.y = 1;
+                            newBlock.position.y = 1;
                         }
                         else if(length == 2) {
-                            wallList[wallList.length - 1].position.y = z * Generator.BLOCK_SIZE * 2;
+                            newBlock.position.y = 1 + z * Generator.BLOCK_SIZE * 2;
                         }
-                        wallList[wallList.length - 1].position.z = y * Generator.BLOCK_SIZE;
+
+                        wallList[z].push(newBlock);
                     }
                 }
             }
@@ -96,9 +103,13 @@ class Generator {
         wallMat.diffuseColor = BABYLON.Color3.Gray();
         wallMat.specularColor = BABYLON.Color3.Gray();
 
-        mergedWall = <BABYLON.Mesh>BABYLON.Mesh.MergeMeshes(wallList, true, true);
-        mergedWall.checkCollisions = true;
-        mergedWall.material = wallMat;
+        this.mazes = [];
+
+        for(var i = 0; i < wallList.length; i++) {
+            this.mazes[i] = <BABYLON.Mesh>BABYLON.Mesh.MergeMeshes(wallList[i], true, true);
+            this.mazes[i].checkCollisions = true;
+            this.mazes[i].material = wallMat;
+        }
 
         var ground = BABYLON.Mesh.CreateGround(
             "ground",
@@ -108,13 +119,14 @@ class Generator {
             GAME.instance.getScene()
         );
         ground.checkCollisions = true;
+
         if(length == 1) {
             ground.position.y = -1;
         }
         else if(length == 2) {
-            ground.position.y = -Generator.BLOCK_SIZE/2;
+            ground.position.y = -1;
             var groundTop = ground.clone("groundTop");
-            groundTop.position.y = -Generator.BLOCK_SIZE/2 + Generator.BLOCK_SIZE*3;
+            groundTop.position.y = 11;
             groundTop.rotation.x = Math.PI;
         }
 
@@ -251,5 +263,49 @@ class Generator {
         }
 
         return returnDir;
+    }
+
+    public invert(sens : number, callback : Function) {
+        var move = Generator.BLOCK_SIZE*2;
+        var callbackIn = this.mazes.length;
+
+        var onAnimEnd = () => {
+            callbackIn--;
+            if(callbackIn == 0) {
+                callback();
+            }
+        };
+
+        var animationPosition_0 = BABYLON.Animation.CreateAndStartAnimation(
+            "cameraPosition",
+            this.mazes[0],
+            "position",
+            30,
+            60,
+            this.mazes[0].position,
+            new BABYLON.Vector3(
+                this.mazes[0].position.x,
+                this.mazes[0].position.y + (move * sens),
+                this.mazes[0].position.z
+            ),
+            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        animationPosition_0.onAnimationEnd = onAnimEnd;
+
+        var animationPosition_1 = BABYLON.Animation.CreateAndStartAnimation(
+            "cameraPosition",
+            this.mazes[1],
+            "position",
+            30,
+            60,
+            this.mazes[1].position,
+            new BABYLON.Vector3(
+                this.mazes[1].position.x,
+                this.mazes[1].position.y - (move * sens),
+                this.mazes[1].position.z
+            ),
+            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        animationPosition_1.onAnimationEnd = onAnimEnd;
     }
 }
