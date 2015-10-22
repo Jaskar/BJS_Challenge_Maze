@@ -59,7 +59,7 @@ class GAME {
         this.scene.fogColor = this.scene.clearColor;
 
         // Debug layer
-        this.scene.debugLayer.show();
+        //this.scene.debugLayer.show();
 
         this.light = new BABYLON.SpotLight(
             "light",
@@ -121,13 +121,16 @@ class GAME {
 
         this.mazeGenerator = new Generator();
         var exitPoint : BABYLON.Vector3;
+        var data = [];
 
         if(this.level == 1) {
-            exitPoint = this.mazeGenerator.generate(10,10,1);
+            data = this.mazeGenerator.generate(10,10,1);
         }
         else if(this.level == 2) {
-            exitPoint = this.mazeGenerator.generate(42,42,2);
+            data = this.mazeGenerator.generate(42,42,2);
         }
+
+        exitPoint = data["exit"];
 
         var exitMat = new BABYLON.StandardMaterial("exitMat", this.scene);
         exitMat.diffuseColor = BABYLON.Color3.Red();
@@ -147,10 +150,14 @@ class GAME {
         this.scene.registerBeforeRender(() => {
 
             // If collide with exit
-            if(this.level == 1) {
-                if(this.player.intersectsMesh(exit, true)) {
+            if(this.player.intersectsMesh(exit, true)) {
+                if(this.level == 1) {
                     alert("You win! Ready for level 2 ?");
                     window.location.href = "./level_2.html";
+                }
+                else if(this.level == 2) {
+                    alert("You win! Good job !");
+                    window.location.href = "./index.html";
                 }
             }
 
@@ -192,7 +199,8 @@ class GAME {
                             () => {
                                 this.camera.attachControl(this.canvas);
                                 this.isMoving = false;
-                            }
+                            },
+                            exit
                         );
                     }
                     else {
@@ -202,24 +210,10 @@ class GAME {
                             () => {
                                 this.camera.attachControl(this.canvas);
                                 this.isMoving = false;
-                            }
+                            },
+                            exit
                         );
                     }
-
-                    //var animationPosition = BABYLON.Animation.CreateAndStartAnimation(
-                    //    "cameraPositionToTop",
-                    //    this.cameraAnimation,
-                    //    "position",
-                    //    30,
-                    //    60,
-                    //    this.cameraAnimation.position,
-                    //    goalPosition,
-                    //    BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-                    //);
-                    //animationPosition.onAnimationEnd = () => {
-                    //    this.camera.attachControl(this.canvas);
-                    //    this.isMoving = false;
-                    //};
                 }
             }
         });

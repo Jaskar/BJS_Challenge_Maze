@@ -27,7 +27,7 @@ class Generator {
 
     //******************************** FUNCTIONS
 
-    public generate(width, height, length) : BABYLON.Vector3 {
+    public generate(width, height, length) : [BABYLON.Vector3] {
         this.width = width;
         this.height = height;
         this.length = length;
@@ -68,8 +68,6 @@ class Generator {
         } while(this.path.length > 0);
 
         var wallList = [];
-        wallList[0] = [];
-        wallList[1] = [];
 
         var templateWall = BABYLON.Mesh.CreateBox(
             "wall", 4,
@@ -80,6 +78,10 @@ class Generator {
         for(var x = -(this.width/2); x < (this.width/2)+1; x++) {
             for(var y = -(this.height/2); y < (this.height/2)+1; y++) {
                 for(var z = 0; z < this.length; z++) {
+                    if(!wallList[z]) {
+                        wallList[z] = [];
+                    }
+
                     if (this.maze[x][y][z] == 1) {
                         var newBlock = <BABYLON.Mesh>templateWall.clone("wall");
 
@@ -265,7 +267,7 @@ class Generator {
         return returnDir;
     }
 
-    public invert(sens : number, callback : Function) {
+    public invert(sens : number, callback : Function, exit : BABYLON.Mesh) {
         var move = Generator.BLOCK_SIZE*2;
         var callbackIn = this.mazes.length;
 
